@@ -1,38 +1,38 @@
-package main
+package httpserver
 
 import (
-	"../db"
 	"encoding/json"
-	"fmt"
+	// "fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"io/ioutil"
+	// "io/ioutil"
+	"cfg"
 	"log"
+	"mydb"
 	"net/http"
 )
 
-type Cfginfo struct {
-	Http string
-	Db   string
-}
+// type Cfginfo struct {
+// 	Http string
+// 	Db   string
+// }
 
-//done
-func Getcfg() (cfginfo Cfginfo) {
-	buf, errOpen := ioutil.ReadFile("../cfg.json")
-	if errOpen != nil {
-		log.Println("配置文件加载失败...")
-		return
-	}
+// //done
+// func Getcfg() (cfginfo Cfginfo) {
+// 	buf, errOpen := ioutil.ReadFile("cfg.json")
+// 	if errOpen != nil {
+// 		log.Println("配置文件加载失败...")
+// 		return
+// 	}
 
-	errjson := json.Unmarshal(buf, &cfginfo)
-	if errjson != nil {
-		fmt.Println("error:", errjson)
-		return
-	}
-	return
-}
+// 	errjson := json.Unmarshal(buf, &cfginfo)
+// 	if errjson != nil {
+// 		fmt.Println("error:", errjson)
+// 		return
+// 	}
+// 	return
+// }
 
-func main() {
-	cfg := Getcfg()
+func Server(cfg cfg.Cfginfo) {
 	http.HandleFunc("/list", List)
 	http.HandleFunc("/update", Update)
 	http.HandleFunc("/insert", Insertdata)
@@ -43,9 +43,9 @@ func main() {
 
 //done
 func List(w http.ResponseWriter, r *http.Request) {
-	Mydb := db.ConnectDatabase()
+	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	RecordList := db.Getdata(Mydb)
+	RecordList := mydb.Getdata(Mydb)
 	var jsonlist []string
 	for i := 0; i < len(RecordList); i++ {
 		j, _ := json.Marshal(RecordList[i])
@@ -62,7 +62,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 //done
 func Deldate(w http.ResponseWriter, r *http.Request) {
-	Mydb := db.ConnectDatabase()
+	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
 	var rec map[string]string
 	if r.Body == nil {
@@ -74,7 +74,7 @@ func Deldate(w http.ResponseWriter, r *http.Request) {
 	}
 	for k, v := range rec {
 		if k == "id" {
-			db.Deldata(Mydb, v)
+			mydb.Deldata(Mydb, v)
 		}
 	}
 }

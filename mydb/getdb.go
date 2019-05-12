@@ -1,4 +1,4 @@
-package db
+package mydb
 
 //package main
 
@@ -6,34 +6,12 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"io/ioutil"
 	"log"
 	//"os"
-	"encoding/json"
+	"cfg"
 	"strings"
 	"time"
 )
-
-type Cfginfo struct {
-	Http string
-	Db   string
-}
-
-//done
-func Getcfg() (cfginfo Cfginfo) {
-	buf, errOpen := ioutil.ReadFile("../cfg.json")
-	if errOpen != nil {
-		log.Println("配置文件加载失败...")
-		return
-	}
-
-	errjson := json.Unmarshal(buf, &cfginfo)
-	if errjson != nil {
-		fmt.Println("error:", errjson)
-		return
-	}
-	return
-}
 
 //done
 func Getdata(db *sql.DB) (FaultRecord []map[string]string) {
@@ -163,8 +141,8 @@ func Searchdata(db *sql.DB, Rnewdata map[string]string) {
 }
 
 func ConnectDatabase() (db *sql.DB) {
-	cfg := Getcfg()
-	db, err := sql.Open("mysql", cfg.Db)
+	config := cfg.Getcfg()
+	db, err := sql.Open("mysql", config.Db)
 	if err != nil {
 		panic(err)
 	}
@@ -173,10 +151,10 @@ func ConnectDatabase() (db *sql.DB) {
 
 func main() {
 	time.Now()
-	cfg := Getcfg()
-	fmt.Println(cfg.Db)
+	config := cfg.Getcfg()
+	fmt.Println(config.Db)
 	db := new(sql.DB)
-	db, err := sql.Open("mysql", cfg.Db)
+	db, err := sql.Open("mysql", config.Db)
 	defer db.Close()
 	if err != nil {
 		panic(err)

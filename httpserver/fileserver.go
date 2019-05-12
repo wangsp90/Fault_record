@@ -1,6 +1,6 @@
 //处理上传单个文件
 
-package main
+package httpserver
 
 import (
 	"io"
@@ -37,7 +37,7 @@ func filesayHelloHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func mainfile() {
-	http.HandleFunc("/", sayHelloHandler) //   设置访问路由
+	http.HandleFunc("/", filesayHelloHandler) //   设置访问路由
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -66,13 +66,13 @@ func filessayHelloHandler(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 		io.Copy(cur, file)
-		fmt.Println(files[i].Filename) //输出上传的文件名
+		log.Println(files[i].Filename) //输出上传的文件名
 	}
 
 	//fmt.Fprintf(w, "Hello world!\n") //这个写入到w的是输出到客户端的
 }
 
 func mainfiles() {
-	http.HandleFunc("/", sayHelloHandler) //	设置访问路由
+	http.HandleFunc("/", filessayHelloHandler) //	设置访问路由
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

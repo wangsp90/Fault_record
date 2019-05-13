@@ -9,6 +9,7 @@ import (
 	"log"
 	//"os"
 	"cfg"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -86,7 +87,7 @@ func Insertdata(db *sql.DB, Rnewdata map[string]string) {
 }
 
 //done
-func Updatedata(db *sql.DB, Rnewdata map[string]string) {
+func Updatedata(db *sql.DB, Rnewdata map[string]string) string {
 	var execsql []string
 	var values []string
 	haed := "UPDATE fault_record SET"
@@ -113,12 +114,12 @@ func Updatedata(db *sql.DB, Rnewdata map[string]string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Printf("ID=%d, affected=%d\n", lastId, rowCnt)
+	result := "ID=" + strconv.FormatInt(lastId, 10) + "," + "affected=" + strconv.FormatInt(rowCnt, 10)
+	return result
 }
 
 //done
-func Deldata(db *sql.DB, Rid interface{}) {
+func Deldata(db *sql.DB, Rid interface{}) string {
 	stmt, err := db.Prepare("UPDATE fault_record SET isdel=1 WHERE id=?;")
 	if err != nil {
 		log.Fatal(err)
@@ -133,7 +134,8 @@ func Deldata(db *sql.DB, Rid interface{}) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("ID=%d, affected=%d\n", lastId, rowCnt)
+	result := "ID=" + strconv.FormatInt(lastId, 10) + "," + "affected=" + strconv.FormatInt(rowCnt, 10)
+	return result
 }
 
 func Searchdata(db *sql.DB, Rnewdata map[string]string) {

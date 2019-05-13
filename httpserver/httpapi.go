@@ -11,27 +11,6 @@ import (
 	"net/http"
 )
 
-// type Cfginfo struct {
-// 	Http string
-// 	Db   string
-// }
-
-// //done
-// func Getcfg() (cfginfo Cfginfo) {
-// 	buf, errOpen := ioutil.ReadFile("cfg.json")
-// 	if errOpen != nil {
-// 		log.Println("配置文件加载失败...")
-// 		return
-// 	}
-
-// 	errjson := json.Unmarshal(buf, &cfginfo)
-// 	if errjson != nil {
-// 		fmt.Println("error:", errjson)
-// 		return
-// 	}
-// 	return
-// }
-
 func Server(cfg cfg.Cfginfo) {
 	http.HandleFunc("/list", List)
 	http.HandleFunc("/update", Update)
@@ -51,7 +30,9 @@ func List(w http.ResponseWriter, r *http.Request) {
 		j, _ := json.Marshal(RecordList[i])
 		jsonlist = append(jsonlist, string(j))
 	}
-	data, _ := json.Marshal(jsonlist)
+	msg := make(map[string][]string)
+	msg["msg"] = jsonlist
+	data, _ := json.Marshal(msg)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write(data)
 }
@@ -72,11 +53,16 @@ func Deldate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
+	var result string
 	for k, v := range rec {
 		if k == "id" {
-			mydb.Deldata(Mydb, v)
+			result = mydb.Deldata(Mydb, v)
 		}
 	}
+	msg := make(map[string]string)
+	msg["msg"] = result
+	data, _ := json.Marshal(msg)
+	w.Write(data)
 }
 
 func Searchdata(w http.ResponseWriter, r *http.Request) {
@@ -84,5 +70,16 @@ func Searchdata(w http.ResponseWriter, r *http.Request) {
 }
 
 func Insertdata(w http.ResponseWriter, r *http.Request) {
+	Mydb := mydb.ConnectDatabase()
+	defer Mydb.Close()
+	var rec map[string]string
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+	}
+	err := json.NewDecoder(r.Body).Decode(&rec)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	mydb.Insertdata(Mydb, rec)
 	w.Write([]byte("This is Insert a new Fault Record."))
 }

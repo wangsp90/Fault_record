@@ -38,6 +38,23 @@ func List(w http.ResponseWriter, r *http.Request) {
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
+	Mydb := mydb.ConnectDatabase()
+	defer Mydb.Close()
+	var rec map[string]string
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+	}
+	err := json.NewDecoder(r.Body).Decode(&rec)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	log.Println(rec["name"])
+	var result string
+	result = mydb.Updatedata(Mydb, rec)
+	msg := make(map[string]string)
+	msg["msg"] = result
+	data, _ := json.Marshal(msg)
+	w.Write(data)
 	w.Write([]byte("This is update Fault Record."))
 }
 

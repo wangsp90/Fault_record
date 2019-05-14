@@ -1,6 +1,7 @@
 package main
 
 import (
+	//"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,8 +10,21 @@ import (
 
 func main() {
 	http.HandleFunc("/", index)
+	http.HandleFunc("/valuetest", getv)
 	http.HandleFunc("/upload", upload)
 	http.ListenAndServe(":1789", nil)
+}
+
+func getv(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fmt.Println(r.Form)
+	fmt.Println(r.Method)
+	// var body map[string]string
+	// err := json.NewDecoder(r.Body).Decode(&body)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), 400)
+	// }
+	// fmt.Println(body)
 }
 
 func upload(w http.ResponseWriter, r *http.Request) {

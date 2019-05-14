@@ -138,8 +138,53 @@ func Deldata(db *sql.DB, Rid interface{}) string {
 	return result
 }
 
-func Searchdata(db *sql.DB, Rnewdata map[string]string) {
+func Searchdata(db *sql.DB, Rnewdata map[string]string) (FaultRecord []map[string]string) {
+	for k, v := range Rnewdata {
+		switch {
+		case k == "starttime":
+			Rnewdata["starttime"] = v
+		case k == "endtime":
+			Rnewdata["endtime"] = v
+		case k == "keyword":
+			Rnewdata["keyword"] = v
+		}
+	}
+	sql1 := "SELECT * from fault_record where isdel=0 and "
+	sql2 := "createtime>=\"" + Rnewdata["starttime"] + "\" and createtime<=\"" + Rnewdata["endtime"] + "\" and name like \"%" + Rnewdata["keyword"] + "%\";"
+	searchsql := sql1 + sql2
+	rows, errselect := db.Query(searchsql)
+	if errselect != nil {
+		log.Fatalln(errselect)
+	}
+	defer rows.Close()
+	//通过使用指定参数去获取数据库查询结果
+	//通过使用column方法来获取数据库的查询结果，并传递给Map
+	cols, errcols := rows.Columns()
+	if errcols != nil {
+		log.Fatalln(errcols)
+	}
+	//定义一个vals用于存放数据库查询的值，但是并非直接传递过来
+	//数据库内容还是用Next()和Scan()获取
+	vals := make([][]byte, len(cols))
+	scans := make([]interface{}, len(cols))
+	for i := range vals {
+		scans[i] = &vals[i]
+	}
 
+	for rows.Next() {
+		errrows := rows.Scan(scans...)
+		if errrows != nil {
+			log.Fatalln(errrows)
+		}
+		//fmt.Println(vals)
+		row := make(map[string]string)
+		for k, v := range vals {
+			key := cols[k]
+			row[key] = string(v)
+		}
+		FaultRecord = append(FaultRecord, row)
+	}
+	return
 }
 
 func ConnectDatabase() (db *sql.DB) {

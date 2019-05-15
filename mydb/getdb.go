@@ -14,39 +14,31 @@ import (
 	"time"
 )
 
+type Recdata struct {
+	Id         int
+	Name       string
+	Recordtext string
+	Recorder   string
+	Createtime string
+	Filenames  []string
+}
+
 //done
-func Getdata(db *sql.DB) (FaultRecord []map[string]string) {
-	rows, errselect := db.Query("SELECT * from fault_record where isdel=0;")
+func Getlist(db *sql.DB) (FaultRecord []Recdata) {
+	rows, errselect := db.Query("SELECT id,name,recorder,createtime from fault_record where isdel=0;")
 	if errselect != nil {
 		log.Fatalln(errselect)
 	}
 	defer rows.Close()
-	//通过使用指定参数去获取数据库查询结果
-	//通过使用column方法来获取数据库的查询结果，并传递给Map
-	cols, errcols := rows.Columns()
-	if errcols != nil {
-		log.Fatalln(errcols)
-	}
-	//定义一个vals用于存放数据库查询的值，但是并非直接传递过来
 	//数据库内容还是用Next()和Scan()获取
-	vals := make([][]byte, len(cols))
-	scans := make([]interface{}, len(cols))
-	for i := range vals {
-		scans[i] = &vals[i]
-	}
-
+	var scans Recdata
 	for rows.Next() {
-		errrows := rows.Scan(scans...)
+		errrows := rows.Scan(&scans.Id, &scans.Name, &scans.Recorder, &scans.Createtime)
 		if errrows != nil {
 			log.Fatalln(errrows)
 		}
-		//fmt.Println(vals)
-		row := make(map[string]string)
-		for k, v := range vals {
-			key := cols[k]
-			row[key] = string(v)
-		}
-		FaultRecord = append(FaultRecord, row)
+		fmt.Println(&scans)
+		FaultRecord = append(FaultRecord, scans)
 	}
 	return
 }
@@ -54,11 +46,11 @@ func Getdata(db *sql.DB) (FaultRecord []map[string]string) {
 //done
 func Insertdata(db *sql.DB, Rnewdata map[string]string) {
 	//使用Prepare，可实现传递参数进行操作
-	stmt, err := db.Prepare("INSERT INTO fault_record (name, recordtext, recorder, createtime) VALUES(?, ?, ?, ?);")
+	stmt1, err := db.Prepare("INSERT INTO fault_record (name, recordtext, recorder, createtime) VALUES(?, ?, ?, ?);")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer stmt.Close()
+	defer stmt1.Close()
 	for k, v := range Rnewdata {
 		switch {
 		case k == "name":
@@ -69,9 +61,11 @@ func Insertdata(db *sql.DB, Rnewdata map[string]string) {
 			Rnewdata["recorder"] = v
 		case k == "createtime":
 			Rnewdata["createtime"] = v
+		case k == "filenames":
+			Rnewdata["filenames"] = v
 		}
 	}
-	res, err := stmt.Exec(Rnewdata["name"], Rnewdata["recordtext"], Rnewdata["recorder"], Rnewdata["createtime"])
+	res, err := stmt1.Exec(Rnewdata["name"], Rnewdata["recordtext"], Rnewdata["recorder"], Rnewdata["createtime"])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -149,7 +143,7 @@ func Searchdata(db *sql.DB, Rnewdata map[string]string) (FaultRecord []map[strin
 			Rnewdata["keyword"] = v
 		}
 	}
-	sql1 := "SELECT * from fault_record where isdel=0 and "
+	sql1 := "SELECT id,name,recorder,createtime from fault_record where isdel=0 and "
 	sql2 := "createtime>=\"" + Rnewdata["starttime"] + "\" and createtime<=\"" + Rnewdata["endtime"] + "\" and name like \"%" + Rnewdata["keyword"] + "%\";"
 	searchsql := sql1 + sql2
 	rows, errselect := db.Query(searchsql)
@@ -207,7 +201,7 @@ func main() {
 		panic(err)
 	}
 	//查询数据库
-	// n := Getdata(db)
+	// n := Getlist(db)
 	// fmt.Println(n)
 	//插入记录
 	// testnewmap := map[string]string{"name": "故障台账录入测试", "recordtext": "This is insert DB test, Good Luck!", "recorder": "Duke", "createtime": "2019-05-12 12:17:28"}

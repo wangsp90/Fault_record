@@ -6,37 +6,82 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	// "io/ioutil"
 	"cfg"
+	"io"
 	"log"
 	"mydb"
 	"net/http"
+	"os"
 )
 
+type Recdata struct {
+	Id         int
+	Name       string
+	Recordtext string
+	Recorder   string
+	Createtime string
+	Filenames  []string
+}
+
+func uploadindex(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(tpl))
+}
+
+const tpl = `<html>
+<head>
+<title>上传文件</title>
+</head>
+<body>
+<form enctype="multipart/form-data" action="/api/v1/upload" method="post">
+ <input type="file" name="uploadfile" multiple/>
+ <input type="hidden" name="token" value="{...{.}...}"/>
+ <input type="submit" value="上传" />
+</form>
+</body>
+</html>`
+
 func Server(cfg cfg.Cfginfo) {
-	http.HandleFunc("/list", List)
-	http.HandleFunc("/update", Update)
-	http.HandleFunc("/insert", Insertdata)
-	http.HandleFunc("/search", Searchdata)
-	http.HandleFunc("/deldata", Deldate)
+	http.HandleFunc("/api/v1/list", Getlist)
+	http.HandleFunc("/api/v1/update", Update)
+	http.HandleFunc("/api/v1/insert", Insertdata)
+	http.HandleFunc("/api/v1/search", Searchdata)
+	http.HandleFunc("/api/v1/deldata", Deldate)
 	//文件服务器
-	http.Handle("/fileserver", http.StripPrefix("/fileserver", http.FileServer(http.Dir("d:/Doc"))))
+	http.HandleFunc("/upload", uploadindex)
+	http.Handle("/api/v1/fileserver", http.StripPrefix("/api/v1/fileserver", http.FileServer(http.Dir("./files/"))))
+	http.HandleFunc("/api/v1/upload", upload)
 	log.Fatal(http.ListenAndServe(cfg.Http, nil))
 }
 
 //done
-func List(w http.ResponseWriter, r *http.Request) {
+func Getlist(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	RecordList := mydb.Getdata(Mydb)
-	var jsonlist []string
-	for i := 0; i < len(RecordList); i++ {
-		j, _ := json.Marshal(RecordList[i])
-		jsonlist = append(jsonlist, string(j))
+	RecordList := mydb.Getlist(Mydb)
+	b, err := json.Marshal(RecordList)
+	if err != nil {
+		log.Println(err)
 	}
-	msg := make(map[string][]string)
-	msg["msg"] = jsonlist
+	msg := make(map[string]string)
+	msg["msg"] = string(b)
 	data, _ := json.Marshal(msg)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write(data)
+}
+
+func Insertdata(w http.ResponseWriter, r *http.Request) {
+	Mydb := mydb.ConnectDatabase()
+	defer Mydb.Close()
+	var rec Recdata
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+	}
+	err := json.NewDecoder(r.Body).Decode(&rec)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	log.Println(rec)
+	//mydb.Insertdata(Mydb, rec)
+	w.Write([]byte("This is Insert a new Fault Record."))
 }
 
 //done
@@ -110,17 +155,29 @@ func Searchdata(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func Insertdata(w http.ResponseWriter, r *http.Request) {
-	Mydb := mydb.ConnectDatabase()
-	defer Mydb.Close()
-	var rec map[string]string
-	if r.Body == nil {
-		http.Error(w, "Please send a request body", 400)
+func upload(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(32 << 20)
+	files := r.MultipartForm.File["uploadfile"]
+	log.Println(files)
+	var filenames []string
+	for i := 0; i < len(files); i++ {
+		f, err := os.Create("./files/" + files[i].Filename)
+		filenames = append(filenames, files[i].Filename)
+		defer f.Close()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		file, err := files[i].Open()
+		defer file.Close()
+		if err != nil {
+			log.Println(err)
+		}
+		io.Copy(f, file)
 	}
-	err := json.NewDecoder(r.Body).Decode(&rec)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-	}
-	mydb.Insertdata(Mydb, rec)
-	w.Write([]byte("This is Insert a new Fault Record."))
+	msg := make(map[string][]string)
+	msg["filenames"] = filenames
+	data, _ := json.Marshal(msg)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Write(data)
 }

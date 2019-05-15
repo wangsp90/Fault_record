@@ -13,15 +13,6 @@ import (
 	"os"
 )
 
-type Recdata struct {
-	Id         int
-	Name       string
-	Recordtext string
-	Recorder   string
-	Createtime string
-	Filenames  []string
-}
-
 func uploadindex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(tpl))
 }
@@ -71,7 +62,7 @@ func Getlist(w http.ResponseWriter, r *http.Request) {
 func Insertdata(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	var rec Recdata
+	var rec map[string]string
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 	}
@@ -80,7 +71,7 @@ func Insertdata(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 400)
 	}
 	log.Println(rec)
-	//mydb.Insertdata(Mydb, rec)
+	mydb.Insertdata(Mydb, rec)
 	w.Write([]byte("This is Insert a new Fault Record."))
 }
 
@@ -96,7 +87,6 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
-	log.Println(rec["name"])
 	var result string
 	result = mydb.Updatedata(Mydb, rec)
 	msg := make(map[string]string)

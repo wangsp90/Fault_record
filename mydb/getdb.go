@@ -14,31 +14,39 @@ import (
 	"time"
 )
 
-type Recdata struct {
-	Id         int
-	Name       string
-	Recordtext string
-	Recorder   string
-	Createtime string
-	Filenames  []string
-}
-
 //done
-func Getlist(db *sql.DB) (FaultRecord []Recdata) {
+func Getlist(db *sql.DB) (FaultRecord []map[string]string) {
 	rows, errselect := db.Query("SELECT id,name,recorder,createtime from fault_record where isdel=0;")
 	if errselect != nil {
 		log.Fatalln(errselect)
 	}
 	defer rows.Close()
 	//数据库内容还是用Next()和Scan()获取
-	var scans Recdata
+	//通过使用column方法来获取数据库的查询结果，并传递给Map
+	cols, errcols := rows.Columns()
+	if errcols != nil {
+		log.Fatalln(errcols)
+	}
+	// //定义一个vals用于存放数据库查询的值，但是并非直接传递过来
+	// //数据库内容还是用Next()和Scan()获取
+	vals := make([][]byte, len(cols))
+	scans := make([]interface{}, len(cols))
+	for i := range vals {
+		scans[i] = &vals[i]
+	}
+
 	for rows.Next() {
-		errrows := rows.Scan(&scans.Id, &scans.Name, &scans.Recorder, &scans.Createtime)
+		errrows := rows.Scan(scans...)
 		if errrows != nil {
 			log.Fatalln(errrows)
 		}
-		fmt.Println(&scans)
-		FaultRecord = append(FaultRecord, scans)
+		//fmt.Println(vals)
+		row := make(map[string]string)
+		for k, v := range vals {
+			key := cols[k]
+			row[key] = string(v)
+		}
+		FaultRecord = append(FaultRecord, row)
 	}
 	return
 }
@@ -47,10 +55,12 @@ func Getlist(db *sql.DB) (FaultRecord []Recdata) {
 func Insertdata(db *sql.DB, Rnewdata map[string]string) {
 	//使用Prepare，可实现传递参数进行操作
 	stmt1, err := db.Prepare("INSERT INTO fault_record (name, recordtext, recorder, createtime) VALUES(?, ?, ?, ?);")
+	stmt2, err := db.Prepare("INSERT INTO files (recordid, filename) VALUES(?, ?);")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt1.Close()
+	defer stmt2.Close()
 	for k, v := range Rnewdata {
 		switch {
 		case k == "name":
@@ -65,19 +75,32 @@ func Insertdata(db *sql.DB, Rnewdata map[string]string) {
 			Rnewdata["filenames"] = v
 		}
 	}
-	res, err := stmt1.Exec(Rnewdata["name"], Rnewdata["recordtext"], Rnewdata["recorder"], Rnewdata["createtime"])
+	res1, err := stmt1.Exec(Rnewdata["name"], Rnewdata["recordtext"], Rnewdata["recorder"], Rnewdata["createtime"])
 	if err != nil {
 		log.Fatal(err)
 	}
-	lastId, err := res.LastInsertId()
+	recordlastId, err := res1.LastInsertId()
 	if err != nil {
 		log.Fatal(err)
 	}
-	rowCnt, err := res.RowsAffected()
+	recordrowCnt, err := res1.RowsAffected()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("ID=%d, affected=%d\n", lastId, rowCnt)
+	res2, err := stmt2.Exec(recordlastId, Rnewdata["filenames"])
+	if err != nil {
+		log.Fatal(err)
+	}
+	filelastId, err := res2.LastInsertId()
+	if err != nil {
+		log.Fatal(err)
+	}
+	filerowCnt, err := res2.RowsAffected()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("记录保存成功ID=%d, affected=%d\n", recordlastId, recordrowCnt)
+	fmt.Printf("文件保存成功ID=%d, affected=%d\n", filelastId, filerowCnt)
 }
 
 //done

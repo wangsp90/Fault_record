@@ -13,7 +13,7 @@ import (
 	"os"
 )
 
-func uploadindex(w http.ResponseWriter, r *http.Request) {
+func Uploadindex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(tpl))
 }
 
@@ -34,12 +34,13 @@ func Server(cfg cfg.Cfginfo) {
 	http.HandleFunc("/api/v1/list", Getlist)
 	http.HandleFunc("/api/v1/update", Update)
 	http.HandleFunc("/api/v1/insert", Insertdata)
-	http.HandleFunc("/api/v1/search", Searchdata)
+	http.HandleFunc("/api/v1/search", Searchtheme)
 	http.HandleFunc("/api/v1/deldata", Deldate)
+	http.HandleFunc("/api/v1/getdetail", Getdetail)
 	//文件服务器
-	http.HandleFunc("/upload", uploadindex)
+	http.HandleFunc("/upload", Uploadindex)
 	http.Handle("/api/v1/fileserver", http.StripPrefix("/api/v1/fileserver", http.FileServer(http.Dir("./files/"))))
-	http.HandleFunc("/api/v1/upload", upload)
+	http.HandleFunc("/api/v1/upload", Upload)
 	log.Fatal(http.ListenAndServe(cfg.Http, nil))
 }
 
@@ -62,7 +63,7 @@ func Getlist(w http.ResponseWriter, r *http.Request) {
 func Insertdata(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	var rec map[string]string
+	var rec mydb.DBdetail
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 	}
@@ -70,9 +71,15 @@ func Insertdata(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
-	log.Println(rec)
-	mydb.Insertdata(Mydb, rec)
-	w.Write([]byte("This is Insert a new Fault Record."))
+	b := mydb.Insertdata(Mydb, rec)
+	if err != nil {
+		log.Println(err)
+	}
+	msg := make(map[string]string)
+	msg["msg"] = string(b)
+	data, _ := json.Marshal(msg)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Write(data)
 }
 
 //done
@@ -87,6 +94,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
+	log.Println(rec)
 	var result string
 	result = mydb.Updatedata(Mydb, rec)
 	msg := make(map[string]string)
@@ -121,7 +129,32 @@ func Deldate(w http.ResponseWriter, r *http.Request) {
 }
 
 //done 只搜索name
-func Searchdata(w http.ResponseWriter, r *http.Request) {
+func Searchtheme(w http.ResponseWriter, r *http.Request) {
+	Mydb := mydb.ConnectDatabase()
+	defer Mydb.Close()
+	var rec mydb.DBdetail
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+	}
+	err := json.NewDecoder(r.Body).Decode(&rec)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	mydb.Searchtheme(Mydb, rec)
+	//RecordList := mydb.Searchtheme(Mydb, rec)
+	// var jsonlist []string
+	// for i := 0; i < len(RecordList); i++ {
+	// 	j, _ := json.Marshal(RecordList[i])
+	// 	jsonlist = append(jsonlist, string(j))
+	// }
+	// msg := make(map[string][]string)
+	// msg["msg"] = jsonlist
+	// data, _ := json.Marshal(msg)
+	// w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	// w.Write(data)
+}
+
+func Getdetail(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
 	var rec map[string]string
@@ -132,20 +165,17 @@ func Searchdata(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
-	RecordList := mydb.Searchdata(Mydb, rec)
-	var jsonlist []string
-	for i := 0; i < len(RecordList); i++ {
-		j, _ := json.Marshal(RecordList[i])
-		jsonlist = append(jsonlist, string(j))
-	}
-	msg := make(map[string][]string)
-	msg["msg"] = jsonlist
+	mydb.Getdetail(Mydb, rec)
+	Detail := mydb.Getdetail(Mydb, rec)
+	jsonlist, _ := json.Marshal(Detail)
+	msg := make(map[string]string)
+	msg["msg"] = string(jsonlist)
 	data, _ := json.Marshal(msg)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write(data)
 }
 
-func upload(w http.ResponseWriter, r *http.Request) {
+func Upload(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(32 << 20)
 	files := r.MultipartForm.File["uploadfile"]
 	log.Println(files)

@@ -54,8 +54,10 @@ func Getlist(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	msg := make(map[string]string)
+	log.Println(string(b))
 	msg["msg"] = string(b)
 	data, _ := json.Marshal(msg)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write(data)
 }
@@ -86,7 +88,7 @@ func Insertdata(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	var rec map[string]string
+	var rec mydb.DBdetail
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 	}
@@ -108,7 +110,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 func Deldate(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	var rec map[string]string
+	var rec mydb.DBdetail
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 	}
@@ -116,12 +118,7 @@ func Deldate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
-	var result string
-	for k, v := range rec {
-		if k == "id" {
-			result = mydb.Deldata(Mydb, v)
-		}
-	}
+	result := mydb.Deldata(Mydb, rec)
 	msg := make(map[string]string)
 	msg["msg"] = result
 	data, _ := json.Marshal(msg)

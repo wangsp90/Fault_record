@@ -9,6 +9,7 @@ import (
 	"log"
 	//"os"
 	"cfg"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -39,14 +40,13 @@ func Getlist(db *sql.DB) []DBdetail {
 	var row DBdetail
 	var FaultRecord []DBdetail
 	for rows.Next() {
-		rows.Scan(&row.Id, &row.Theme, &row.Recorder, &row.Starttime)
+		rows.Scan(&row.Id, &row.Theme, &row.Recorder, &row.Starttime, &row.Effect)
 		FaultRecord = append(FaultRecord, row)
 	}
 	return FaultRecord
 }
 
 //done
-// func Insertdata(db *sql.DB, Rnewdata map[string]string) {
 func Insertdata(db *sql.DB, Rnewdata DBdetail) string {
 	stmt1, err := db.Prepare("INSERT INTO fault_record (theme, reason, recorder, lasttime,starttime,endtime,process,solution,appearance,effect,filesname) VALUES(?, ?, ?, ?,?,?,?,?,?,?,?);")
 	if err != nil {
@@ -71,14 +71,18 @@ func Insertdata(db *sql.DB, Rnewdata DBdetail) string {
 }
 
 //done
-func Updatedata(db *sql.DB, Rnewdata map[string]string) string {
+func Updatedata(db *sql.DB, Rnewdata DBdetail) string {
 	var execsql []string
 	var values []string
 	head := "UPDATE fault_record SET"
 	end := "WHERE id=?"
-	for k, v := range Rnewdata {
-		if k != "id" {
-			values = append(values, (k + "='" + v + "'"))
+	RnewType := reflect.TypeOf(Rnewdata)
+	RewValues := reflect.ValueOf(Rnewdata)
+	for i := 0; i < RewValues.NumField(); i++ {
+		FieldName := RnewType.Field(i).Name
+		FieldValue := RewValues.Field(i).String()
+		if FieldName != "Id" {
+			values = append(values, (strings.ToLower(FieldName) + "='" + FieldValue + "'"))
 		}
 	}
 	execsql = append(execsql, head, strings.Join(values, ","), end)
@@ -89,8 +93,8 @@ func Updatedata(db *sql.DB, Rnewdata map[string]string) string {
 	}
 	defer stmt1.Close()
 	log.Println(strings.Join(execsql, " ") + ";")
-	log.Println(Rnewdata["id"])
-	res1, err := stmt1.Exec([]byte(Rnewdata["id"]))
+	log.Println(Rnewdata.Id)
+	res1, err := stmt1.Exec(Rnewdata.Id)
 	recordlastId, err := res1.LastInsertId()
 	if err != nil {
 		log.Fatal(err)
@@ -105,13 +109,13 @@ func Updatedata(db *sql.DB, Rnewdata map[string]string) string {
 }
 
 //done
-func Deldata(db *sql.DB, Rid interface{}) string {
+func Deldata(db *sql.DB, Rnewdata DBdetail) string {
 	stmt, err := db.Prepare("UPDATE fault_record SET isdel=1 WHERE id=?;")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	res, err := stmt.Exec(Rid)
+	res, err := stmt.Exec(Rnewdata.Id)
 	lastId, err := res.LastInsertId()
 	if err != nil {
 		log.Fatal(err)
@@ -124,9 +128,7 @@ func Deldata(db *sql.DB, Rid interface{}) string {
 	return result
 }
 
-// func Searchtheme(db *sql.DB, Rnewdata map[string]string) (FaultRecord []map[string]string) {
-//func Searchtheme(db *sql.DB, Rnewdata DBdetail) (FaultRecord []DBdetail) {
-func Searchtheme(db *sql.DB, Rnewdata DBdetail) {
+func Searchtheme(db *sql.DB, Rnewdata DBdetail) []DBdetail {
 	head := "SELECT id,theme,recorder,starttime from fault_record where isdel=0 and "
 	sqlline := []string{("starttime>=\"" + Rnewdata.Starttime + "\" and endtime<=\"" + Rnewdata.Endtime + "\"")}
 	if Rnewdata.Theme != "" {
@@ -140,6 +142,19 @@ func Searchtheme(db *sql.DB, Rnewdata DBdetail) {
 	}
 	full := head + (strings.Join(sqlline, " and ")) + ";"
 	log.Println(full)
+	rows, errselect := db.Query(head + (strings.Join(sqlline, " and ")) + ";")
+	if errselect != nil {
+		log.Fatalln(errselect)
+	}
+	defer rows.Close()
+	var row DBdetail
+	var FaultRecord []DBdetail
+	for rows.Next() {
+		rows.Scan(&row.Id, &row.Theme, &row.Recorder, &row.Starttime)
+		FaultRecord = append(FaultRecord, row)
+	}
+	log.Println(FaultRecord)
+	return FaultRecord
 	// for k, v := range Rnewdata {
 	// 	switch {
 	// 	case k == "starttime":

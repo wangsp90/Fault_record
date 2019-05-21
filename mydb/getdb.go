@@ -129,7 +129,18 @@ func Deldata(db *sql.DB, Rnewdata DBdetail) string {
 }
 
 func Searchtheme(db *sql.DB, Rnewdata DBdetail) []DBdetail {
-	head := "SELECT id,theme,recorder,starttime from fault_record where isdel=0 and "
+	if Rnewdata.Starttime == "" {
+		Rnewdata.Starttime = "2019-05-01"
+	} else {
+		Rnewdata.Starttime = (strings.Split(Rnewdata.Starttime, "T"))[0]
+	}
+	if Rnewdata.Endtime == "" {
+		Rnewdata.Endtime = time.Now().Format("2019-05-01")
+		log.Println(Rnewdata.Endtime)
+	} else {
+		Rnewdata.Endtime = (strings.Split(Rnewdata.Endtime, "T"))[0]
+	}
+	head := "SELECT id,theme,recorder,starttime,effect from fault_record where isdel=0 and "
 	sqlline := []string{("starttime>=\"" + Rnewdata.Starttime + "\" and endtime<=\"" + Rnewdata.Endtime + "\"")}
 	if Rnewdata.Theme != "" {
 		sqlline = append(sqlline, ("theme like \"%" + Rnewdata.Theme + "%\""))
@@ -140,20 +151,22 @@ func Searchtheme(db *sql.DB, Rnewdata DBdetail) []DBdetail {
 	if Rnewdata.Recorder != "" {
 		sqlline = append(sqlline, ("recorder like \"%" + Rnewdata.Recorder + "%\""))
 	}
+
 	full := head + (strings.Join(sqlline, " and ")) + ";"
 	log.Println(full)
-	rows, errselect := db.Query(head + (strings.Join(sqlline, " and ")) + ";")
+	rows, errselect := db.Query(full)
 	if errselect != nil {
 		log.Fatalln(errselect)
 	}
 	defer rows.Close()
+
 	var row DBdetail
 	var FaultRecord []DBdetail
 	for rows.Next() {
-		rows.Scan(&row.Id, &row.Theme, &row.Recorder, &row.Starttime)
+		rows.Scan(&row.Id, &row.Theme, &row.Recorder, &row.Starttime, &row.Effect)
 		FaultRecord = append(FaultRecord, row)
 	}
-	log.Println(FaultRecord)
+	//log.Println(FaultRecord)
 	return FaultRecord
 	// for k, v := range Rnewdata {
 	// 	switch {
@@ -203,43 +216,49 @@ func Searchtheme(db *sql.DB, Rnewdata DBdetail) []DBdetail {
 	// return
 }
 
-func Getdetail(db *sql.DB, Rnewdata map[string]string) map[string]string {
-	execsql := []string{"SELECT a.id,a.name,a.recordtext,a.recorder,a.createtime, b.filename FROM fault_record a,upload_files b where a.id=b.recordid and b.recordid="}
-	for k, v := range Rnewdata {
-		if k == "id" {
-			execsql = append(execsql, v, ";")
-		}
+//func Getdetail(db *sql.DB, Rnewdata map[string]string) map[string]string {
+func Getdetail(db *sql.DB, Rnewdata DBdetail) DBdetail {
+	execsql := []string{"SELECT id,theme,reason,recorder,lasttime,starttime,endtime,process,solution,appearance,effect,filesname FROM fault_record where id="}
+	if Rnewdata.Id != 0 {
+		execsql = append(execsql, strconv.Itoa(Rnewdata.Id), ";")
 	}
-	rows, errselect := db.Query(strings.Join(execsql, ""))
+	full := strings.Join(execsql, "")
+	log.Println(full)
+	rows, errselect := db.Query(full)
 	if errselect != nil {
 		log.Fatalln(errselect)
 	}
 	defer rows.Close()
-	//数据库内容还是用Next()和Scan()获取
-	//通过使用column方法来获取数据库的查询结果，并传递给Map
-	cols, errcols := rows.Columns()
-	if errcols != nil {
-		log.Fatalln(errcols)
-	}
-	// //定义一个vals用于存放数据库查询的值，但是并非直接传递过来
 	// //数据库内容还是用Next()和Scan()获取
-	vals := make([][]byte, len(cols))
-	scans := make([]interface{}, len(cols))
-	for i := range vals {
-		scans[i] = &vals[i]
-	}
-	row := make(map[string]string)
+	// //通过使用column方法来获取数据库的查询结果，并传递给Map
+	// cols, errcols := rows.Columns()
+	// if errcols != nil {
+	// 	log.Fatalln(errcols)
+	// }
+	// // //定义一个vals用于存放数据库查询的值，但是并非直接传递过来
+	// // //数据库内容还是用Next()和Scan()获取
+	// vals := make([][]byte, len(cols))
+	// scans := make([]interface{}, len(cols))
+	// for i := range vals {
+	// 	scans[i] = &vals[i]
+	// }
+	// row := make(map[string]string)
+	// for rows.Next() {
+	// 	errrows := rows.Scan(scans...)
+	// 	if errrows != nil {
+	// 		log.Fatalln(errrows)
+	// 	}
+	// 	//fmt.Println(vals)
+	// 	for k, v := range vals {
+	// 		key := cols[k]
+	// 		row[key] = string(v)
+	// 	}
+	// }
+	var row DBdetail
 	for rows.Next() {
-		errrows := rows.Scan(scans...)
-		if errrows != nil {
-			log.Fatalln(errrows)
-		}
-		//fmt.Println(vals)
-		for k, v := range vals {
-			key := cols[k]
-			row[key] = string(v)
-		}
+		rows.Scan(&row.Id, &row.Theme, &row.Reason, &row.Recorder, &row.Lasttime, &row.Starttime, &row.Endtime, &row.Process, &row.Solution, &row.Appearance, &row.Effect, &row.Filesname)
 	}
+	log.Println(row)
 	return row
 }
 

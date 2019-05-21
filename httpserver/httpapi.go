@@ -54,7 +54,6 @@ func Getlist(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	msg := make(map[string]string)
-	log.Println(string(b))
 	msg["msg"] = string(b)
 	data, _ := json.Marshal(msg)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -127,9 +126,9 @@ func Deldate(w http.ResponseWriter, r *http.Request) {
 
 //done 只搜索name
 func Searchtheme(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	//w.Header().Set("Access-Control-Allow-Credentials", "false")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, OPTIONS")
+	// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, OPTIONS")
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	//w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, X-Requested-With, Origin, Accept")
 	Mydb := mydb.ConnectDatabase()
@@ -153,14 +152,14 @@ func Searchtheme(w http.ResponseWriter, r *http.Request) {
 	msg := make(map[string]string)
 	msg["msg"] = string(b)
 	data, _ := json.Marshal(msg)
-	w.WriteHeader(http.StatusOK)
+	log.Println(string(data))
 	w.Write(data)
 }
 
 func Getdetail(w http.ResponseWriter, r *http.Request) {
 	Mydb := mydb.ConnectDatabase()
 	defer Mydb.Close()
-	var rec map[string]string
+	var rec mydb.DBdetail
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 	}

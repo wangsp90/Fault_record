@@ -27,6 +27,8 @@ type DBdetail struct {
 func main() {
 	http.HandleFunc("/list", List)
 	http.HandleFunc("/search", Search)
+	http.HandleFunc("/deldata", Deldata)
+	http.HandleFunc("/getdetail", Getdetail)
 	http.Handle("/", http.FileServer(http.Dir("./")))
 	log.Fatal(http.ListenAndServe(":9000", nil))
 }
@@ -59,13 +61,57 @@ func Search(w http.ResponseWriter, r *http.Request) {
 	data := bytes.NewBuffer(b)
 	res, err := httpClient.Post("http://127.0.0.1:8000/api/v1/search", "application/json;charset=utf-8", data)
 	if err != nil {
-		log.Printf("something wrong here: %s \n", err.Error())
-		return
+		panic(err)
+		// return
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	if err != nil {
-		log.Println(err)
+		panic(err)
+	}
+	log.Println(string(body))
+	w.Write(body)
+}
+
+func Deldata(w http.ResponseWriter, r *http.Request) {
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	if r.Body == nil {
+		w.Write([]byte("Nodata!"))
+	}
+	b, _ := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	data := bytes.NewBuffer(b)
+	res, err := httpClient.Post("http://127.0.0.1:8000/api/v1/deldata", "application/json;charset=utf-8", data)
+	if err != nil {
+		panic(err)
+		// return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		panic(err)
+	}
+	log.Println(string(body))
+	w.Write(body)
+}
+
+func Getdetail(w http.ResponseWriter, r *http.Request) {
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	if r.Body == nil {
+		w.Write([]byte("Nodata!"))
+	}
+	b, _ := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	data := bytes.NewBuffer(b)
+	res, err := httpClient.Post("http://127.0.0.1:8000/api/v1/getdetail", "application/json;charset=utf-8", data)
+	if err != nil {
+		panic(err)
+		// return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		panic(err)
 	}
 	log.Println(string(body))
 	w.Write(body)

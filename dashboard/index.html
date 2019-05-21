@@ -45,9 +45,9 @@
 <div style="margin:10px" Margin:"20px" id="app">
     <!--搜索框相关-->
     <i-form v-ref:form-inline :model="formInline" :rules="ruleInline" inline>
-        <i-button style="margin:10px" @click="get">刷新</i-button>
-        <Date-picker style="margin-left:180px" :value.sync="searchinfo.starttime" type="datetime" placeholder="2019-01-01 00:00:00" style="width: 200px"></Date-picker>
-        <Date-picker style="margin-left:10px; margin-right:10px" :value.sync="searchinfo.endtime" type="datetime" placeholder="选择日期和时间" style="width: 200px"></Date-picker>
+        <i-button style="margin:10px" @click="list">刷新</i-button>
+        <Date-picker style="margin-left:180px" :value.sync="searchinfo.starttime" type="date" format="yyyy-MM-dd" placeholder="选择日期和时间" style="width: 200px"></Date-picker>
+        <Date-picker style="margin-left:10px; margin-right:10px" :value.sync="searchinfo.endtime" type="date" format="yyyy-MM-dd" placeholder="选择日期和时间" style="width: 200px"></Date-picker>
         <i-input :value.sync="searchinfo.theme" placeholder="搜索主题..." style="width: 120px"></i-input>
         <i-input :value.sync="searchinfo.effect" placeholder="搜索影响..." style="width: 120px"></i-input>
         <i-button type="primary" @click="search">搜索</i-button>
@@ -67,9 +67,9 @@
 new Vue({
     el: '#app',
     data: {
+            detail: {},
             cartList: [],
             searchinfo:{
-                id: '',
                 theme: '',
                 effect: '',
                 starttime: '',
@@ -91,15 +91,21 @@ new Vue({
                 {
                     title: '影响范围',
                     key: 'Effect'
-                },
+                }, 
                 {
-                    title: '记录时间',
-                    key: 'Lasttime'
+                    title: '操作',
+                    key: 'action',  
+                    align: 'center',
+                    render (row, column, index) {
+                        return `<i-button type="primary" size="small" @click="getdetail(${index})">查看</i-button>
+                                <i-button type="primary" size="small" @click="edit(${index})">编辑</i-button>
+                                <i-button type="error" size="small" @click="deldata(${index})">删除</i-button>`;
+                    }
                 }
             ]
     },
     methods: {
-        get:function(cartList){
+        list:function(cartList){
             this.$http.get('/list').then(function(res){
                 this.cartList=JSON.parse(res.data.msg);
                 console.log(this.cartList)
@@ -110,6 +116,26 @@ new Vue({
             console.log(jsondata)
             this.$http.post('/search',jsondata).then(function(res){
                 this.cartList=JSON.parse(res.data.msg)
+                console.log(res.data.msg)
+            });
+        },
+        getdetail:function(index){
+            jsondata = JSON.stringify(this.cartList[index]);
+            this.$http.post('/getdetail',jsondata).then(function(res){
+                this.detail=JSON.parse(res.data.msg);
+                console.log(this.detail)
+            })
+        },
+        deldata:function(index){
+            jsondata = JSON.stringify(this.cartList[index]);
+            console.log(jsondata)
+            this.$http.post('/deldata',jsondata).then(function(res){
+                this.$http.get('/list').then(function(res){
+                    this.cartList=JSON.parse(res.data.msg);
+                    console.log(this.cartList)
+                })
+            },function(res){
+                console.log('失败')
             });
         }      
     }

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>iview example</title>
+    <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
+    <script type="text/javascript" src="http://v1.vuejs.org/js/vue.min.js"></script>
+    <script type="text/javascript" src="http://unpkg.com/iview@1.0.1/dist/iview.min.js"></script>
+    <script type="text/javascript" src="vue-resource.min.js"></script>
+
+    <link href="https://magicbox.bk.tencent.com/static_api/v3/assets/bootstrap-3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://magicbox.bk.tencent.com/static_api/v3/bk/css/bk.css" rel="stylesheet">
+</head>
+<body>
+    <!--HTML-->
+<nav>
+    <div class="nav king-horizontal-nav10" id="horizontal_nav_demo10">
+        <div class="navbar-header">
+            <a href="#" class="navbar-brand">
+                <img src="https://magicbox.bk.tencent.com/static_api/v3/bk/images/logo.png" class="logo"/>
+            </a>
+        </div>
+        <ul class="nav navbar-nav">
+            <li class="active"><a href="/">业务首页</a></li>
+            <li><a href="">任务管理</a></li>
+            <li><a href="">模板管理</a></li>
+            <li><a href="">业务配置</a></li>
+            <li><a href="">职业化中心</a></li>
+            <li class="navslip" id="navslip"></li>
+        </ul>
+        <!--
+        <div class="navbar-header pull-right">
+            <ul class="nav">
+                <li class="user-info">
+                    <a href="">
+                        <span class="f12">admin</span><img src="https://magicbox.bk.tencent.com/static_api/v3/components/horizontal_nav10/images/avatar.png" class="img-rounded"/>
+                    </a>
+                </li>               
+            </ul>
+        </div>
+    -->
+    </div>
+</nav>
+
+<div style="margin:10px" Margin:"20px" id="app">
+    <!--搜索框相关-->
+    <i-form v-ref:form-inline :model="formInline" :rules="ruleInline" inline>
+        <i-button style="margin:10px" @click="get">刷新</i-button>
+        <Date-picker style="margin-left:180px" :value.sync="searchinfo.starttime" type="datetime" placeholder="2019-01-01 00:00:00" style="width: 200px"></Date-picker>
+        <Date-picker style="margin-left:10px; margin-right:10px" :value.sync="searchinfo.endtime" type="datetime" placeholder="选择日期和时间" style="width: 200px"></Date-picker>
+        <i-input :value.sync="searchinfo.theme" placeholder="搜索主题..." style="width: 120px"></i-input>
+        <i-input :value.sync="searchinfo.effect" placeholder="搜索影响..." style="width: 120px"></i-input>
+        <i-button type="primary" @click="search">搜索</i-button>
+    </i-form>
+    <!--信息表格-->
+    <i-table  style="margin:10px" id="datatable1"
+            size="small"
+            :columns="columns"
+            :data="cartList"
+            :rid = "cartList.id"
+            stripe
+            highlight-row>
+    </i-table>
+</div>
+</body>
+<Script>
+new Vue({
+    el: '#app',
+    data: {
+            cartList: [],
+            searchinfo:{
+                id: '',
+                theme: '',
+                effect: '',
+                starttime: '',
+                endtime: '',
+            },
+            columns: [
+                {
+                    title: '主题',
+                    key: 'Theme'
+                },
+                {
+                    title: '记录者',
+                    key: 'Recorder'
+                },
+                {
+                    title: '故障时间',
+                    key: 'Starttime'
+                },
+                {
+                    title: '影响范围',
+                    key: 'Effect'
+                },
+                {
+                    title: '记录时间',
+                    key: 'Lasttime'
+                }
+            ]
+    },
+    methods: {
+        get:function(cartList){
+            this.$http.get('/list').then(function(res){
+                this.cartList=JSON.parse(res.data.msg);
+                console.log(this.cartList)
+            })
+        },
+        search:function(cartList){
+            jsondata = JSON.stringify(this.searchinfo);
+            console.log(jsondata)
+            this.$http.post('/search',jsondata).then(function(res){
+                this.cartList=JSON.parse(res.data.msg)
+            });
+        }      
+    }
+});
+</Script>
+</html>

@@ -1,4 +1,4 @@
 {
 	"http" : "127.0.0.1:8000",
-	"db" : "root:123456@tcp(127.0.0.1:3306)/gohttserver"
+	"db" : "root:HD#it2019@tcp(10.100.174.21:3306)/gohttserver"
 }
